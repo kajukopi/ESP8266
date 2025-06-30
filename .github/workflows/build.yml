@@ -45,7 +45,11 @@ jobs:
 
     - name: Generate spiffs.bin from /data
       run: |
-        mkspiffs -c data -p 256 -b 8192 -s 3342336 bin/spiffs.bin
+        # Locate mkspiffs from the installed ESP8266 tools
+        MKSPIFFS_PATH=$(find ~/.arduino15/packages/esp8266/tools/mkspiffs/ -name mkspiffs | head -n 1)
+        echo "Using mkspiffs at $MKSPIFFS_PATH"
+        mkdir -p bin
+        $MKSPIFFS_PATH -c data -p 256 -b 8192 -s 3342336 bin/spiffs.bin
 
     - name: Upload compiled firmware and spiffs
       uses: actions/upload-artifact@v4
