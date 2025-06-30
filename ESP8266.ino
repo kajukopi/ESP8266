@@ -1,54 +1,96 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
-#include <ESP8266HTTPUpdateServer.h>
-#include <FS.h> // SPIFFS
 
 const char* ssid = "karimroy";
 const char* password = "09871234";
 
 ESP8266WebServer server(80);
-ESP8266HTTPUpdateServer httpUpdater;
+const int ledPin = D1;
+bool ledState = false;
 
-const int ledPin = 2;
+const char* htmlPage = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ESP8266 LED Control</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
+    h1 { color: #333; }
+    button {
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .on { background: #4CAF50; color: white; }
+    .off { background: #f44336; color: white; }
+    #status { font-size: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>NodeMCU LED Control</h1>
+  <button class="on" onclick="controlLED('on')">Turn ON</button>
+  <button class="off" onclick="controlLED('off')">Turn OFF</button>
+  <p id="status">LED Status: <span id="ledState">...</span></p>
 
-void handleLedOn() {
-  digitalWrite(ledPin, LOW);
+  <script>
+    function controlLED(state) {
+      fetch('/' + state)
+        .then(response => response.text())
+        .then(text => document.getElementById('ledState').innerText = text);
+    }
+
+    setInterval(() => {
+      fetch('/status')
+        .then(res => res.text())
+        .then(text => document.getElementById('ledState').innerText = text);
+    }, 2000);
+  </script>
+</body>
+</html>
+)rawliteral";
+
+void handleRoot() {
+  server.send(200, "text/html", htmlPage);
+}
+
+void handleOn() {
+  digitalWrite(ledPin, HIGH);
+  ledState = true;
   server.send(200, "text/plain", "ON");
 }
 
-void handleLedOff() {
-  digitalWrite(ledPin, HIGH);
+void handleOff() {
+  digitalWrite(ledPin, LOW);
+  ledState = false;
   server.send(200, "text/plain", "OFF");
 }
 
-void handleLedState() {
-  server.send(200, "text/plain", digitalRead(ledPin) == LOW ? "ON" : "OFF");
+void handleStatus() {
+  server.send(200, "text/plain", ledState ? "ON" : "OFF");
 }
 
 void setup() {
   Serial.begin(115200);
-  WiFi.begin(ssid, password);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(ledPin, LOW);
 
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+    delay(500); Serial.print(".");
   }
 
-  Serial.println("\nWiFi connected");
+  Serial.println("\nWiFi connected: ");
   Serial.println(WiFi.localIP());
 
-  SPIFFS.begin();
-
-  server.on("/led/on", handleLedOn);
-  server.on("/led/off", handleLedOff);
-  server.on("/led/state", handleLedState);
-  server.serveStatic("/", SPIFFS, "/index.html");
-
-  httpUpdater.setup(&server); // /update
-
+  server.on("/", handleRoot);
+  server.on("/on", handleOn);
+  server.on("/off", handleOff);
+  server.on("/status", handleStatus);
   server.begin();
   Serial.println("HTTP server started");
 
@@ -61,5 +103,3 @@ void loop() {
   server.handleClient();
   ArduinoOTA.handle();
 }
-
-// Edit 3
