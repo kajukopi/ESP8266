@@ -22,10 +22,6 @@ jobs:
             source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
         sketch-paths: |
           - .
-        libraries: |
-          - name: ESP8266WiFi
-          - name: ESP8266WebServer
-          - name: ArduinoOTA
         verbose: false
         sketches-report-path: sketches-report
 
