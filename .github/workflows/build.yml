@@ -8,22 +8,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
 
-    - name: Compile for NodeMCU
-      uses: arduino/compile-sketches@v1
+    - name: Set up Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
       with:
-        fqbn: esp8266:esp8266:nodemcuv2
-        platforms: |
-          - name: esp8266:esp8266
-            source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
-        sketch-paths: |
-          - .
-        output-dir: build
+        version: latest
 
-    - name: Upload compiled binary
+    - name: Install ESP8266 platform
+      run: |
+        arduino-cli core update-index
+        arduino-cli core install esp8266:esp8266
+
+    - name: Compile sketch to bin/
+      run: |
+        mkdir -p bin
+        arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 NodeMCU_OTA --output-dir bin
+
+    - name: Upload firmware from bin/
       uses: actions/upload-artifact@v4
       with:
         name: firmware
-        path: build/**/*.bin
+        path: bin/*.bin
