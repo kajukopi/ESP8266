@@ -2,6 +2,7 @@
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <FS.h> // SPIFFS
 
 const char* ssid = "karimroy";
 const char* password = "09871234";
@@ -9,54 +10,43 @@ const char* password = "09871234";
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
-const int ledPin = 2; // Onboard LED
-
-void handleRoot() {
-  String html = R"rawliteral(
-    <h1>NodeMCU LED Control</h1>
-    <p>LED is <b>%STATE%</b></p>
-    <a href="/led/on"><button>Turn ON</button></a>
-    <a href="/led/off"><button>Turn OFF</button></a>
-    <p><a href="/update">OTA Firmware Upload</a></p>
-  )rawliteral";
-
-  html.replace("%STATE%", digitalRead(ledPin) == LOW ? "ON" : "OFF");
-  server.send(200, "text/html", html);
-}
+const int ledPin = 2;
 
 void handleLedOn() {
-  digitalWrite(ledPin, LOW); // LED ON (active LOW)
-  server.sendHeader("Location", "/");
-  server.send(303);
+  digitalWrite(ledPin, LOW);
+  server.send(200, "text/plain", "ON");
 }
 
 void handleLedOff() {
-  digitalWrite(ledPin, HIGH); // LED OFF
-  server.sendHeader("Location", "/");
-  server.send(303);
+  digitalWrite(ledPin, HIGH);
+  server.send(200, "text/plain", "OFF");
+}
+
+void handleLedState() {
+  server.send(200, "text/plain", digitalRead(ledPin) == LOW ? "ON" : "OFF");
 }
 
 void setup() {
   Serial.begin(115200);
   WiFi.begin(ssid, password);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH); // Start with LED OFF
+  digitalWrite(ledPin, HIGH);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println();
-  Serial.println("WiFi connected at: ");
+  Serial.println("\nWiFi connected");
   Serial.println(WiFi.localIP());
 
-  // Web server routes
-  server.on("/", handleRoot);
+  SPIFFS.begin();
+
   server.on("/led/on", handleLedOn);
   server.on("/led/off", handleLedOff);
+  server.on("/led/state", handleLedState);
+  server.serveStatic("/", SPIFFS, "/index.html");
 
-  // OTA firmware page
   httpUpdater.setup(&server); // /update
 
   server.begin();
