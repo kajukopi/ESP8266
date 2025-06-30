@@ -8,13 +8,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Arduino CLI
-      uses: arduino/setup-arduino-cli@v1
-      with:
-        version: 0.35.3        # pin the release
+    - name: Install Arduino CLI manually
+      run: |
+        curl -fsSL https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz | tar -xzf -
+        sudo mv arduino-cli /usr/local/bin/
+        arduino-cli version
 
     - name: Install ESP8266 platform
       run: |
@@ -24,7 +26,7 @@ jobs:
     - name: Compile sketch to bin/
       run: |
         mkdir -p bin
-        arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 NodeMCU_OTA --output-dir bin
+        arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 . --output-dir bin
 
     - name: Upload firmware from bin/
       uses: actions/upload-artifact@v4
