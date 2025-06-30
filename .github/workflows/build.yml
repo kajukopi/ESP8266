@@ -20,3 +20,10 @@ jobs:
             source-url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
         sketch-paths: |
           - .
+        output-dir: build
+
+    - name: Upload compiled binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: firmware
+        path: build/**/*.bin
