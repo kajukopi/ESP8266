@@ -11,33 +11,33 @@ ESP8266WebServer server(80);
 
 void handleRoot() {
   server.send(200, "text/html", "<h1>Hello from NodeMCU</h1><p>OTA Ready</p>");
+}
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
 
-  void setup() {
-    Serial.begin(115200);
-      WiFi.begin(ssid, password);
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println(WiFi.localIP());
 
-        while (WiFi.status() != WL_CONNECTED) {
-            delay(500);
-                Serial.print(".");
-                  }
+  // Set up web server routes
+  server.on("/", handleRoot);
+  server.begin();
+  Serial.println("HTTP server started");
 
-                    Serial.println("");
-                      Serial.println("WiFi connected");
-                        Serial.println(WiFi.localIP());
+  // OTA Setup
+  ArduinoOTA.setHostname("NodeMCU-OTA");
+  ArduinoOTA.begin();
+  Serial.println("OTA Ready");
+}
 
-                          // Set up web server routes
-                            server.on("/", handleRoot);
-                              server.begin();
-                                Serial.println("HTTP server started");
-
-                                  // OTA Setup
-                                    ArduinoOTA.setHostname("NodeMCU-OTA");
-                                      ArduinoOTA.begin();
-                                        Serial.println("OTA Ready");
-                                        }
-
-                                        void loop() {
-                                          server.handleClient();
-                                            ArduinoOTA.handle();
-                                            }
+void loop() {
+  server.handleClient();
+  ArduinoOTA.handle();
+}
