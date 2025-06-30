@@ -1,24 +1,26 @@
-name: Build ESP8266 Binary
+name: Build ESP8266 Firmware and SPIFFS
 
 on:
   push:
     paths:
       - '**/*.ino'
+      - 'data/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout source code
+      uses: actions/checkout@v3
 
-    - name: Install Arduino CLI manually
+    - name: Install Arduino CLI
       run: |
         curl -fsSL https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Linux_64bit.tar.gz | tar -xzf -
         sudo mv arduino-cli /usr/local/bin/
         arduino-cli version
 
-    - name: Install ESP8266 platform
+    - name: Configure ESP8266 core
       run: |
         arduino-cli config init
         arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
@@ -30,8 +32,25 @@ jobs:
         mkdir -p bin
         arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 . --output-dir bin
 
-    - name: Upload firmware from bin/
+    - name: Install Python + ESP8266FS (SPIFFS builder)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        pip3 install esptool
+        mkdir -p ~/.arduino15/packages/esp8266/tools/mkspiffs
+        cd ~/.arduino15/packages/esp8266/tools/mkspiffs
+        wget https://github.com/esp8266/arduino-esp8266fs-plugin/releases/download/0.2.0/mkspiffs-0.2.0-linux64.tar.gz
+        tar -xzf mkspiffs-0.2.0-linux64.tar.gz --strip 1
+        sudo cp mkspiffs /usr/local/bin/
+
+    - name: Generate spiffs.bin from /data
+      run: |
+        mkspiffs -c data -p 256 -b 8192 -s 3342336 bin/spiffs.bin
+
+    - name: Upload compiled firmware and spiffs
       uses: actions/upload-artifact@v4
       with:
-        name: firmware
-        path: bin/*.bin
+        name: firmware-and-spiffs
+        path: |
+          bin/firmware.bin
+          bin/spiffs.bin
